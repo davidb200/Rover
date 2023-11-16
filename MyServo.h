@@ -2,19 +2,13 @@
 #define MYSERVO_H
 #include <Servo.h>
 
-// Constants
-const byte SIGNAL_PIN        = A2;
-const int MIN                = 500;
-const int MAX                = 2500;
-
 class MyServo{
   private:
-
   byte _servoPin;
-  unsigned int _position;
   Servo _servo;
 
   public:
+  
   // Enum
   enum Direction{
     LOOK_LEFT     = 180,
@@ -25,6 +19,13 @@ class MyServo{
   ///////////// CONSTRUCTORS ///////////////
   MyServo();
   MyServo(byte servoPin);
+
+  ///////////// METHODS ///////////////
+  void initServo(byte servoPin);
+
+  void lookStraight();
+  void turnLeft();
+  void turnRight();
 
 }; // myServo
 #endif

@@ -18,5 +18,6 @@ class Remote{
     STOP = 20
   }; 
 
-};
+}; // Remote
+
 #endif

@@ -12,14 +12,6 @@ UltrasonicSensor::UltrasonicSensor(byte triggerPin, byte echoPin){
 } 
 
 
-void UltrasonicSensor::setupTimer1(){
-  TCNT1 = TM1_COUNT;
-  TCCR1A = 0x00;  // normal mode
-  TCCR1B = (1<<CS12) | (1<<CS10); // clk/1024
-  TIMSK1 = (1<<TOIE1);
-} // setupTimer1
-
-
 unsigned long UltrasonicSensor::measure(){
 
   unsigned long duration = 0;

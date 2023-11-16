@@ -30,24 +30,22 @@ void Motor::setSpeed(int speed){
 } // setSpeed
 
 
-void Motor::run(Motor::MotorDirection direction){
+void Motor::goForward(){
+  digitalWrite(_pin1, HIGH);
+  digitalWrite(_pin2, LOW);
+  analogWrite(_enable,_speed);
+} // goForward
 
-  switch(direction)
-  {
-      case MotorStop:
-      	digitalWrite(_pin1,LOW);
-      	digitalWrite(_pin2,LOW);
-      	digitalWrite(_enable,LOW);
-      	break;
-      case MotorForward:
-      	digitalWrite(_pin1,HIGH);
-      	digitalWrite(_pin2,LOW);
-      	analogWrite(_enable,_speed);
-      	break;
-      case MotorLeft:
-        break;
-      case MotorRight:
-        break;
-  } // which dir
 
-} // run
+void Motor::goBackward(){
+  digitalWrite(_pin1,LOW);
+  digitalWrite(_pin2,HIGH);
+  analogWrite(_enable,_speed);
+} // goBackward
+
+
+void Motor::stop(){
+  digitalWrite(_pin1,LOW);
+  digitalWrite(_pin2,LOW);
+  digitalWrite(_enable,LOW);
+} // stop
