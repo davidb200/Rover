@@ -51,6 +51,8 @@ double UltrasonicSensor::measureInches(){
     
     if(duration > 0)
       inches = duration / 74.0;
-    
+    else
+      inches = MAX_DURATION / 74.0;
+  
     return inches;
 } // measureInches

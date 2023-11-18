@@ -12,7 +12,7 @@
 
 // Ultrasonic sensor
 const unsigned long MAX_DURATION        = 12 * 12 * 74 * 2; // I chose 12ft
-const double FORWARD_DISTANCE_THRESHOLD = 10;
+const double FORWARD_DISTANCE_THRESHOLD = 16;
 const double SIDE_DISTANCE_THRESHOLD    = 10.5;
 const double TOO_CLOSE_THRESHOLD        = 3.0;
 
@@ -33,9 +33,17 @@ const byte RE                           = 6;  // Right enable Timer-0 (OC0A)
 const byte RB                           = 8;  // Right backwards
 const byte RF                           = 2; // Right forwards
 
+const int TURN_DELAY                    = 620;
+const int ADJUST_DELAY                  = 250;
+const int REVERSE_DELAY                 = 1000;
+
+// Remote
+const byte IR_RECEIVE_PIN               = 12;
+
 // LED's
 const byte RED_LED                      = A4;
 const byte GREEN_LED                    = A5;
+const byte RC_LED                       = 11;
 
 // Global variables
 
@@ -52,13 +60,21 @@ MyServo head(SIGNAL_PIN);
 Motor left_motor(LF,LB,LE);
 Motor right_motor(RF,RB,RE);
 
+int left_speed  = 105;
+int right_speed = 100;
+
+// Remote
+Remote remote(IR_RECEIVE_PIN);
+
 void setup(){
   // LED's 
   pinMode(RED_LED,OUTPUT);
   pinMode(GREEN_LED,OUTPUT);
+  pinMode(RC_LED,OUTPUT);
 
   digitalWrite(RED_LED,LOW);
   digitalWrite(GREEN_LED,HIGH);
+  digitalWrite(RC_LED,LOW);
 
   // Ultrasonic Sensor
   Serial.begin(9600);
@@ -69,84 +85,223 @@ void setup(){
   // Motors
   delay(5000);
 
-  
+  // Remote
+  IrReceiver.begin(IR_RECEIVE_PIN, true);
+
 }
 
 void loop(){
-  left_motor.setSpeed(100);
-  right_motor.setSpeed(100);
+  checkRemote();
+  left_motor.setSpeed(left_speed);
+  right_motor.setSpeed(right_speed);
   // Take a measurement in the straight direction
-  straights_current_distance = us_sensor.measureInches();
-  // left_motor.stop();
+
+  roverStraight();
+  scanDrive();//scan forward left and right while moving and check if needs to turn  //check if path needs to adjust slightly
+}
+
+//ROVER CONTROLS---------------------------------------------
+void roverLeft(){
+  left_motor.goBackward();
+  right_motor.goForward();
+}//end left
+
+void roverRight(){
+  left_motor.goForward();
+  right_motor.goBackward();
+}//end right
+
+void roverStraight(){
   left_motor.goForward();
   right_motor.goForward();
+}//end straight
 
-  // Here we check if straight's current distance is less than the tolerable distance
-  //If true
+void roverReverse(){
+  left_motor.goBackward();
+  right_motor.goBackward();
+}//end backward
+
+void roverStop(){
+  left_motor.stop();
+  right_motor.stop();
+}//end stop
+
+//I/O--------------------------------------------------------------------------------
+void checkRemote(){
+  if(IrReceiver.decode()) 
+  {
+    bool remoteControl = false; // Init remote control to false
+    Serial.println(IrReceiver.decodedIRData.command);
+    if(IrReceiver.decodedIRData.command == Remote::Buttons::POWER){ // If we hit the power button 
+
+      digitalWrite(RC_LED, HIGH);
+      digitalWrite(RED_LED, LOW);
+      digitalWrite(GREEN_LED, LOW);
+
+      remoteControl = true;
+      roverStop(); // Stop the motors
+      delay(2000);
+      IrReceiver.resume();
+
+      while(remoteControl) // While we do not hit the power button again
+      {
+        if(IrReceiver.decode())
+        {
+        switch(IrReceiver.decodedIRData.command)
+        {
+          case Remote::Buttons::LEFT:
+            roverLeft();
+            delay(150);
+            roverStop();
+            delay(150);
+            break;
+          case Remote::Buttons::RIGHT:
+            roverRight();
+            delay(150);
+            roverStop();
+            delay(150);
+            break;
+          case Remote::Buttons::BACKWARDS:
+            roverReverse();
+            delay(150);
+            roverStop();
+            delay(150);
+            break;
+          case Remote::Buttons::FORWARDS:
+            roverStraight();
+            delay(150);
+            roverStop();
+            delay(150);
+            break;
+          case Remote::Buttons::POWER:
+            remoteControl = false;
+            roverStop();
+            digitalWrite(RC_LED, LOW);
+            digitalWrite(GREEN_LED, HIGH);
+            delay(200);
+            
+            break; 
+        }
+        IrReceiver.resume();
+        }
+      }
+    }
+    else // If it does not recieve the power button as a signal
+    {
+      // Does not do anything
+      IrReceiver.resume();
+    }
+  }
+
+} // checkRemote
+
+
+void scanDrive(){ //scans foward left forward right, to use while MOVING // slightly adjusts path if it detects wall to side, checks for turns if it detects wall in front
+
+      head.lookStraight();
+      straights_current_distance = us_sensor.measureInches();
+      checkTurn(); //immediately checks if rover needs to turn before scanning elsewhere//checks front
+      checkRemote(); //
+      
+      head.turnLeft(); //check left -------------------------
+      // measure left's current distance 
+      lefts_current_distance = us_sensor.measureInches(); 
+      if (lefts_current_distance < SIDE_DISTANCE_THRESHOLD) //veer right
+  {
+    digitalWrite(RED_LED,HIGH);
+    digitalWrite(GREEN_LED,LOW);
+
+    right_motor.setSpeed(right_speed - 50);
+    right_motor.goForward();
+    delay(ADJUST_DELAY);
+    right_motor.setSpeed(right_speed);
+    right_motor.goForward();
+
+    digitalWrite(GREEN_LED,HIGH);
+    digitalWrite(RED_LED,LOW);
+  }
+    checkRemote(); //
+    head.lookStraight(); //check middle ----------------------
+    straights_current_distance = us_sensor.measureInches();
+    checkTurn(); //immediately checks if rover needs to turn before scanning elsewhere //checks middle in between turns
+
+    checkRemote(); //
+    head.turnRight();  //check right -------------------------
+    // meausre right's current distance
+    rights_current_distance = us_sensor.measureInches();  
+
+    if(rights_current_distance < SIDE_DISTANCE_THRESHOLD) //veer left
+    {
+      digitalWrite(RED_LED,HIGH);
+      digitalWrite(GREEN_LED,LOW);
+
+      left_motor.setSpeed(left_speed - 50);
+      left_motor.goForward(); // must call the goForward functions again so they run with the new speed
+      delay(ADJUST_DELAY);
+      left_motor.setSpeed(left_speed);
+      left_motor.goForward();
+
+      digitalWrite(GREEN_LED,HIGH);
+      digitalWrite(RED_LED,LOW);
+    }
+     checkRemote(); //
+
+}//end scanDrive
+
+
+void checkTurn(){ //checks if rover needs to turn then takes the necessary action accordingly
   if(straights_current_distance < FORWARD_DISTANCE_THRESHOLD)
   {   
       //Turn red LED on and green LED off
       digitalWrite(RED_LED,HIGH);
       digitalWrite(GREEN_LED,LOW);
       // Rover comes to a full STOP
-      left_motor.stop();
-      right_motor.stop();
-      //delay(500);
-      // If were too close to the wall
-      if(straights_current_distance < TOO_CLOSE_THRESHOLD){
+      roverStop();
+     
+      if(straights_current_distance < TOO_CLOSE_THRESHOLD)
+      { // If were too close to the wall
         // BACKUP 
-        left_motor.goBackward();
-        right_motor.goBackward();
-        delay(1000);
-        left_motor.stop();
-        right_motor.stop();
+        roverReverse();
+        delay(REVERSE_DELAY);
+        roverStop();
       }
       
-      // We need to turn the eyes left
-      head.turnLeft();
-      // measure left's current distance 
-      lefts_current_distance = us_sensor.measureInches();
-      // Then turn the eyes right
-      head.turnRight();
-      // meausre right's current distance
-      rights_current_distance = us_sensor.measureInches();
-      // If left's current distance is less than right's current distance
-      head.lookStraight();
+      lookSides(); //look around to find which way to turn
+
       if(lefts_current_distance < rights_current_distance)
       {
          // We turn the rover right
-        left_motor.goForward();
-        right_motor.goBackward();
+        roverRight();
 
-        delay(750);
-        left_motor.stop();
-        right_motor.stop();
-        delay(500);
+        delay(TURN_DELAY);
+        roverStop();
+        delay(50);
 
-        left_motor.goForward();
-        right_motor.goForward();
+        roverLeft();
+        delay(200); //orients the back wheel so it continues straight
+
+
+        roverStraight();
       }
   // else
      else
       {
         //We turn the rover left
-        left_motor.goBackward();
-        right_motor.goForward();
+        roverLeft();
 
-        delay(750);
-        left_motor.stop();
-        right_motor.stop();
-        delay(500);
+        delay(TURN_DELAY);
+        roverStop();
+        delay(50);
 
-        left_motor.goForward();
-        right_motor.goForward();
+        roverRight();
+        delay(200);//orients the back wheel so it continues straight
+
+        roverStraight();
       }
   }
   // else (No obstacle is detected near) 
-  else 
-  {
+
     // We keep the eyes straight 
-    head.lookStraight();
 
     // Set the red LED off and set the green LED on
     digitalWrite(RED_LED,LOW);
@@ -154,5 +309,17 @@ void loop(){
 
     // Move the rover forward
 
-  }
+}//end checkTurn
+
+void lookSides(){ //scans left and right, for when car is stopped and needs to turn
+        // We need to turn the eyes left
+      head.turnLeft();
+      // measure left's current distance 
+      lefts_current_distance = us_sensor.measureInches(); 
+
+      head.turnRight();
+      // meausre right's current distance
+      rights_current_distance = us_sensor.measureInches();  
+
+      head.lookStraight();
 }

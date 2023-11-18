@@ -17,17 +17,17 @@ void MyServo::initServo(byte servoPin){
 
 void MyServo::lookStraight(){
   _servo.write(Direction::LOOK_STRAIGHT);
-  delay(625);
+  delay(475);
 } // lookStraight
 
 
 void MyServo::turnLeft(){
   _servo.write(Direction::LOOK_LEFT);
-  delay(625);
+  delay(475);
 } // turnLeft
 
 
 void MyServo::turnRight(){
   _servo.write(Direction::LOOK_RIGHT);
-   delay(1250);
+   delay(475);
 } // turnRight
