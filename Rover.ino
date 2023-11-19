@@ -221,16 +221,16 @@ void checkRemote(){
 
 void scanDrive(){ //scans foward left forward right, to use while MOVING // slightly adjusts path if it detects wall to side, checks for turns if it detects wall in front
 
-      head.lookStraight();
-      straights_current_distance = us_sensor.measureInches();
-      checkTurn(); //immediately checks if rover needs to turn before scanning elsewhere//checks front
-      checkRemote(); //
+    head.lookStraight();
+    straights_current_distance = us_sensor.measureInches();
+    checkTurn(); //immediately checks if rover needs to turn before scanning elsewhere//checks front
+    checkRemote(); //
       
-      head.turnLeft(); //check left -------------------------
-      // measure left's current distance 
-      lefts_current_distance = us_sensor.measureInches(); 
-      if (lefts_current_distance < SIDE_DISTANCE_THRESHOLD) //veer right
-          veerRight();
+    head.turnLeft(); //check left -------------------------
+    // measure left's current distance 
+    lefts_current_distance = us_sensor.measureInches(); 
+    if (lefts_current_distance < SIDE_DISTANCE_THRESHOLD) //veer right
+      veerRight();
 
     checkRemote(); //
 
@@ -329,10 +329,10 @@ void veerRight(){//measures current distance from left wall and adjusts until it
   digitalWrite(RED_LED,HIGH);
   digitalWrite(GREEN_LED,LOW);
 
-    right_motor.setSpeed(left_speed - 50); //starts veering left
-    left_motor.setSpeed(right_speed + 50);
-    right_motor.goForward(); // must call the goForward functions again so they run with the new speed
-    left_motor.goForward();
+  right_motor.setSpeed(left_speed - 50); //starts veering left
+  left_motor.setSpeed(right_speed + 50);
+  right_motor.goForward(); // must call the goForward functions again so they run with the new speed
+  left_motor.goForward();
 
   while(adjusting){
   lefts_current_distance = us_sensor.measureInches();
@@ -342,10 +342,10 @@ void veerRight(){//measures current distance from left wall and adjusts until it
 
   }
 
-        left_motor.setSpeed(left_speed);
-        right_motor.setSpeed(right_speed); //resume straight path
-        left_motor.goForward(); 
-        right_motor.goForward();
+  left_motor.setSpeed(left_speed);
+  right_motor.setSpeed(right_speed); //resume straight path
+  left_motor.goForward(); 
+  right_motor.goForward();
 
   digitalWrite(GREEN_LED,HIGH);
   digitalWrite(RED_LED,LOW);
@@ -372,10 +372,10 @@ void veerLeft(){//measures current distance from right wall and adjusts until it
 
   }
 
-        left_motor.setSpeed(left_speed);
-        right_motor.setSpeed(right_speed); //resume straight path
-        left_motor.goForward(); 
-        right_motor.goForward();
+  left_motor.setSpeed(left_speed);
+  right_motor.setSpeed(right_speed); //resume straight path
+  left_motor.goForward(); 
+  right_motor.goForward();
 
   digitalWrite(GREEN_LED,HIGH);
   digitalWrite(RED_LED,LOW);
@@ -470,15 +470,15 @@ void danceParty(){
     {
       left_motor.goBackward();
       right_motor.goForward();
-        digitalWrite(RED_LED,HIGH);
-        digitalWrite(GREEN_LED,LOW);
+      digitalWrite(RED_LED,HIGH);
+      digitalWrite(GREEN_LED,LOW);
 
       delay(200);
 
       left_motor.goForward();
       right_motor.goBackward(); 
-        digitalWrite(RED_LED,LOW);
-        digitalWrite(GREEN_LED,HIGH);
+      digitalWrite(RED_LED,LOW);
+      digitalWrite(GREEN_LED,HIGH);
       delay(200);
     }
   }
