@@ -12,7 +12,8 @@
 
 // Ultrasonic sensor
 const unsigned long MAX_DURATION        = 12 * 12 * 74 * 2; // I chose 12ft
-const double FORWARD_DISTANCE_THRESHOLD = 16;
+const unsigned long MAX_DISTANCE        = MAX_DURATION / 74.0; //inches
+const double FORWARD_DISTANCE_THRESHOLD = 18;
 const double SIDE_DISTANCE_THRESHOLD    = 10.5;
 const double TOO_CLOSE_THRESHOLD        = 3.0;
 
@@ -33,9 +34,9 @@ const byte RE                           = 6;  // Right enable Timer-0 (OC0A)
 const byte RB                           = 8;  // Right backwards
 const byte RF                           = 2; // Right forwards
 
-const int TURN_DELAY                    = 620;
-const int ADJUST_DELAY                  = 250;
-const int REVERSE_DELAY                 = 1000;
+const int TURN_DELAY                    = 550;
+//const int ADJUST_DELAY                  = 350;
+const int REVERSE_DELAY                 = 800;
 
 // Remote
 const byte IR_RECEIVE_PIN               = 12;
@@ -60,8 +61,8 @@ MyServo head(SIGNAL_PIN);
 Motor left_motor(LF,LB,LE);
 Motor right_motor(RF,RB,RE);
 
-int left_speed  = 105;
-int right_speed = 100;
+int left_speed  = 130; //left speed should be about 10 more than right speed to keep it on a straight course
+int right_speed = 120;
 
 // Remote
 Remote remote(IR_RECEIVE_PIN);
@@ -102,13 +103,35 @@ void loop(){
 
 //ROVER CONTROLS---------------------------------------------
 void roverLeft(){
+  bool turning = true;
   left_motor.goBackward();
   right_motor.goForward();
+
+  while (turning){
+  straights_current_distance = us_sensor.measureInches();
+
+  if(lefts_current_distance >= (MAX_DURATION - 0.001) && lefts_current_distance <= (MAX_DURATION + 0.001)){//cant use == with doubles
+     delay(TURN_DELAY); // cant verify turn is done properly if side measurement is out of range, so have to approximate with a default value
+    turning = false;
+  }else if(straights_current_distance < (MAX_DURATION - 0.001)  && straights_current_distance >= (lefts_current_distance - 5.0))
+    turning = false; //stops turning if it isnt measuring the max distance (12 feet) or if its greater than the measured side distance
+  }
 }//end left
 
 void roverRight(){
+  bool turning = true;
   left_motor.goForward();
   right_motor.goBackward();
+
+  while (turning){
+  straights_current_distance = us_sensor.measureInches();
+
+  if(rights_current_distance >= (MAX_DURATION - 0.001) && rights_current_distance <= (MAX_DURATION + 0.001)){//cant use == with doubles
+     delay(TURN_DELAY); // cant verify turn is done properly if side measurement is out of range, so have to approximate with a default value
+    turning = false;
+  }else if(straights_current_distance < (MAX_DURATION - 0.001) && straights_current_distance >= (rights_current_distance - 5.0))
+    turning = false; //stops turning if it isnt measuring the max distance (12 feet) or if its greater than the measured side distance
+  }
 }//end right
 
 void roverStraight(){
@@ -207,20 +230,10 @@ void scanDrive(){ //scans foward left forward right, to use while MOVING // slig
       // measure left's current distance 
       lefts_current_distance = us_sensor.measureInches(); 
       if (lefts_current_distance < SIDE_DISTANCE_THRESHOLD) //veer right
-  {
-    digitalWrite(RED_LED,HIGH);
-    digitalWrite(GREEN_LED,LOW);
+          veerRight();
 
-    right_motor.setSpeed(right_speed - 50);
-    right_motor.goForward();
-    delay(ADJUST_DELAY);
-    right_motor.setSpeed(right_speed);
-    right_motor.goForward();
-
-    digitalWrite(GREEN_LED,HIGH);
-    digitalWrite(RED_LED,LOW);
-  }
     checkRemote(); //
+
     head.lookStraight(); //check middle ----------------------
     straights_current_distance = us_sensor.measureInches();
     checkTurn(); //immediately checks if rover needs to turn before scanning elsewhere //checks middle in between turns
@@ -231,20 +244,11 @@ void scanDrive(){ //scans foward left forward right, to use while MOVING // slig
     rights_current_distance = us_sensor.measureInches();  
 
     if(rights_current_distance < SIDE_DISTANCE_THRESHOLD) //veer left
-    {
-      digitalWrite(RED_LED,HIGH);
-      digitalWrite(GREEN_LED,LOW);
-
-      left_motor.setSpeed(left_speed - 50);
-      left_motor.goForward(); // must call the goForward functions again so they run with the new speed
-      delay(ADJUST_DELAY);
-      left_motor.setSpeed(left_speed);
-      left_motor.goForward();
-
-      digitalWrite(GREEN_LED,HIGH);
-      digitalWrite(RED_LED,LOW);
-    }
-     checkRemote(); //
+      veerLeft();
+    
+     checkRemote();
+     
+    //checkEndCourse(); //check if it has completed the course
 
 }//end scanDrive
 
@@ -257,6 +261,7 @@ void checkTurn(){ //checks if rover needs to turn then takes the necessary actio
       digitalWrite(GREEN_LED,LOW);
       // Rover comes to a full STOP
       roverStop();
+      
      
       if(straights_current_distance < TOO_CLOSE_THRESHOLD)
       { // If were too close to the wall
@@ -265,21 +270,17 @@ void checkTurn(){ //checks if rover needs to turn then takes the necessary actio
         delay(REVERSE_DELAY);
         roverStop();
       }
-      
+
+      delay(200);
       lookSides(); //look around to find which way to turn
 
       if(lefts_current_distance < rights_current_distance)
       {
          // We turn the rover right
         roverRight();
-
-        delay(TURN_DELAY);
+     
         roverStop();
-        delay(50);
-
-        roverLeft();
-        delay(200); //orients the back wheel so it continues straight
-
+        delay(100);
 
         roverStraight();
       }
@@ -289,12 +290,8 @@ void checkTurn(){ //checks if rover needs to turn then takes the necessary actio
         //We turn the rover left
         roverLeft();
 
-        delay(TURN_DELAY);
         roverStop();
-        delay(50);
-
-        roverRight();
-        delay(200);//orients the back wheel so it continues straight
+        delay(100);
 
         roverStraight();
       }
@@ -323,3 +320,166 @@ void lookSides(){ //scans left and right, for when car is stopped and needs to t
 
       head.lookStraight();
 }
+
+void veerRight(){//measures current distance from left wall and adjusts until it is in a direction heading away from it
+//make sure head is already facing towards LEFT 
+  bool adjusting = true;
+  double lefts_previous_distance = us_sensor.measureInches(); 
+
+  digitalWrite(RED_LED,HIGH);
+  digitalWrite(GREEN_LED,LOW);
+
+    right_motor.setSpeed(left_speed - 50); //starts veering left
+    left_motor.setSpeed(right_speed + 50);
+    right_motor.goForward(); // must call the goForward functions again so they run with the new speed
+    left_motor.goForward();
+
+  while(adjusting){
+  lefts_current_distance = us_sensor.measureInches();
+
+  if(lefts_current_distance >= lefts_previous_distance + 1.0)
+    adjusting = false;
+
+  }
+
+        left_motor.setSpeed(left_speed);
+        right_motor.setSpeed(right_speed); //resume straight path
+        left_motor.goForward(); 
+        right_motor.goForward();
+
+  digitalWrite(GREEN_LED,HIGH);
+  digitalWrite(RED_LED,LOW);
+}//end veerRight
+
+void veerLeft(){//measures current distance from right wall and adjusts until it is in a direction heading away from it
+//make sure head is already facing towards right
+  bool adjusting = true;
+  double rights_previous_distance = us_sensor.measureInches(); 
+
+  digitalWrite(RED_LED,HIGH);
+  digitalWrite(GREEN_LED,LOW);
+
+    left_motor.setSpeed(left_speed - 50); //starts veering left
+    right_motor.setSpeed(right_speed + 50);
+    left_motor.goForward(); // must call the goForward functions again so they run with the new speed
+    right_motor.goForward();
+
+  while(adjusting){
+  rights_current_distance = us_sensor.measureInches();
+
+  if(rights_current_distance >= rights_previous_distance + 1.0)
+    adjusting = false;
+
+  }
+
+        left_motor.setSpeed(left_speed);
+        right_motor.setSpeed(right_speed); //resume straight path
+        left_motor.goForward(); 
+        right_motor.goForward();
+
+  digitalWrite(GREEN_LED,HIGH);
+  digitalWrite(RED_LED,LOW);
+}//end veerLeft
+
+void checkEndCourse(){
+
+  //check that all distances are > 6 feet;
+  bool rightClear = (rights_current_distance >= 4.0 * 12.0);
+  bool leftClear = (lefts_current_distance >= 4.0 * 12.0);
+  bool frontClear = (lefts_current_distance >= 4.0 * 12.0);
+
+  if(rightClear && leftClear && frontClear){
+    head.lookStraight();
+    roverStop();
+    delay(1000);
+    danceParty();
+  }
+
+}//end of endCourse
+
+void danceParty(){
+  left_speed = 200;
+  right_speed = 200;
+
+  while(true){
+  left_motor.goForward();
+  right_motor.goBackward(); //spin right
+  digitalWrite(RED_LED,HIGH);
+  digitalWrite(GREEN_LED,HIGH);
+  digitalWrite(RC_LED,HIGH);
+  delay(1500);
+
+
+  roverStraight(); //MOVE IT MOVE IT
+  digitalWrite(RED_LED,HIGH);
+  digitalWrite(GREEN_LED,LOW);
+  digitalWrite(RC_LED,LOW);
+  delay(300);
+
+  roverReverse();
+  digitalWrite(RED_LED,LOW);
+  digitalWrite(GREEN_LED,HIGH);
+  digitalWrite(RC_LED,LOW);
+  delay(300);
+
+  roverStraight();
+  digitalWrite(RED_LED,LOW);
+  digitalWrite(GREEN_LED,LOW);
+  digitalWrite(RC_LED,HIGH);
+  delay(300);
+
+  roverReverse();
+  digitalWrite(RED_LED,HIGH);
+  digitalWrite(GREEN_LED,LOW);
+  digitalWrite(RC_LED,LOW);
+  delay(300);
+
+
+  left_motor.goBackward();
+  right_motor.goForward(); //spin left
+  digitalWrite(RED_LED,HIGH);
+  digitalWrite(GREEN_LED,HIGH);
+  digitalWrite(RC_LED,HIGH);
+  delay(1500);
+
+  roverStraight(); //MOVE IT MOVE IT (again)
+  digitalWrite(RED_LED,HIGH);
+  digitalWrite(GREEN_LED,LOW);
+  digitalWrite(RC_LED,LOW);
+  delay(300);
+
+  roverReverse();
+  digitalWrite(RED_LED,LOW);
+  digitalWrite(GREEN_LED,HIGH);
+  digitalWrite(RC_LED,LOW);
+  delay(300);
+
+  roverStraight();
+  digitalWrite(RED_LED,LOW);
+  digitalWrite(GREEN_LED,LOW);
+  digitalWrite(RC_LED,HIGH);
+  delay(300);
+
+  roverReverse();
+  digitalWrite(RED_LED,HIGH);
+  digitalWrite(GREEN_LED,LOW);
+  digitalWrite(RC_LED,LOW);
+  delay(300);
+
+  for(int i = 1; i <5; i++) //shake ya booty (5 times)
+    {
+      left_motor.goBackward();
+      right_motor.goForward();
+        digitalWrite(RED_LED,HIGH);
+        digitalWrite(GREEN_LED,LOW);
+
+      delay(200);
+
+      left_motor.goForward();
+      right_motor.goBackward(); 
+        digitalWrite(RED_LED,LOW);
+        digitalWrite(GREEN_LED,HIGH);
+      delay(200);
+    }
+  }
+} // end of danceParty
