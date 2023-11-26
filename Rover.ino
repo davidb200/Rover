@@ -107,12 +107,16 @@ void roverLeft(){
   right_motor.goForward();
 
   while (turning){
+    delay(50);
+    roverStop();
   straights_current_distance = us_sensor.measureInches();
+    left_motor.goBackward();
+  right_motor.goForward();
 
-  if(lefts_current_distance >= (MAX_DURATION - 0.001) && lefts_current_distance <= (MAX_DURATION + 0.001)){//cant use == with doubles
+  if(lefts_current_distance >= (MAX_DISTANCE - 0.001) && lefts_current_distance <= (MAX_DISTANCE + 0.001)){//cant use == with doubles
      delay(TURN_DELAY); // cant verify turn is done properly if side measurement is out of range, so have to approximate with a default value
     turning = false;
-  }else if(straights_current_distance < (MAX_DURATION - 0.001)  && straights_current_distance >= (lefts_current_distance - 5.0))
+  }else if(straights_current_distance >= (lefts_current_distance - 5.0) && straights_current_distance <= (lefts_current_distance - 5.0))
     turning = false; //stops turning if it isnt measuring the max distance (12 feet) or if its greater than the measured side distance
   }
 }//end left
@@ -125,10 +129,10 @@ void roverRight(){
   while (turning){
   straights_current_distance = us_sensor.measureInches();
 
-  if(rights_current_distance >= (MAX_DURATION - 0.001) && rights_current_distance <= (MAX_DURATION + 0.001)){//cant use == with doubles
+  if(rights_current_distance >= (MAX_DISTANCE - 0.001) && rights_current_distance <= (MAX_DISTANCE + 0.001)){//cant use == with doubles
      delay(TURN_DELAY); // cant verify turn is done properly if side measurement is out of range, so have to approximate with a default value
     turning = false;
-  }else if(straights_current_distance < (MAX_DURATION - 0.001) && straights_current_distance >= (rights_current_distance - 5.0))
+  }else if(straights_current_distance >= (rights_current_distance - 5.0) && straights_current_distance <= (MAX_DISTANCE - 0.001))
     turning = false; //stops turning if it isnt measuring the max distance (12 feet) or if its greater than the measured side distance
   }
 }//end right
