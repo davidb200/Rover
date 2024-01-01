@@ -1,7 +1,14 @@
-/*
-* The main application
-*/
-
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Title      : Rover.ino
+// Authors    : David Betanzos and William Dragstrem
+// Description: The main application where the functions for the rover are implemented below
+//              loop() using the methods provided in all the other source
+//              files and called inside loop(). setup() is used to initialize the components needed
+//              for the rover: ultrasonic sensor, servo, DC motors, and indicator LED's which 
+//              are attached to the back of the rover.
+// Functions  : roverLeft, roverRight, roverStraight, roverRevese, checkRemote, scanDrive, checkTurn, 
+//              lookSides, veerRight, veerLeft, checkEndCourse          
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include "UltrasonicSensor.h"
 #include "MyServo.h"
 #include "Motor.h"
@@ -12,7 +19,7 @@
 
 // Ultrasonic sensor
 const unsigned long MAX_DURATION        = 12 * 12 * 74 * 2; // I chose 12ft
-const unsigned long MAX_DISTANCE        = MAX_DURATION / 74.0; //inches
+const unsigned long MAX_DISTANCE        = MAX_DURATION / 74.0; // inches
 const double FORWARD_DISTANCE_THRESHOLD = 10.0;
 const double SIDE_DISTANCE_THRESHOLD    = 12.6;
 const double TOO_CLOSE_THRESHOLD        = 4.0;
@@ -28,14 +35,13 @@ const int MAX                           = 2500;
 // Motor
 const byte LE                           = 5;  // Left enable Timer-0 (OC0B)
 const byte LB                           = 7;  // Left backwards
-const byte LF                           = 4; // Left forwards
+const byte LF                           = 4;  // Left forwards
 
 const byte RE                           = 6;  // Right enable Timer-0 (OC0A)
 const byte RB                           = 8;  // Right backwards
-const byte RF                           = 2; // Right forwards
+const byte RF                           = 2;  // Right forwards
 
 const int TURN_DELAY                    = 500;
-//const int ADJUST_DELAY                  = 350;
 const int REVERSE_DELAY                 = 300;
 
 // Remote
@@ -61,8 +67,8 @@ MyServo head(SIGNAL_PIN);
 Motor left_motor(LF,LB,LE);
 Motor right_motor(RF,RB,RE);
 
-int left_speed  = 130; //left speed should be about 10 more than right speed to keep it on a straight course
-int right_speed = 120;
+int left_speed  = 255; // left speed should be about 10 more than right speed to keep it on a straight course
+int right_speed = 245;
 
 // Remote
 Remote remote(IR_RECEIVE_PIN);
@@ -76,9 +82,6 @@ void setup(){
   digitalWrite(RED_LED,LOW);
   digitalWrite(GREEN_LED,HIGH);
   digitalWrite(RC_LED,LOW);
-
-  // Ultrasonic Sensor
-  Serial.begin(9600);
 
   // Servo
   head.initServo(SIGNAL_PIN);
@@ -102,6 +105,12 @@ void loop(){
 }
 
 //ROVER CONTROLS---------------------------------------------
+
+/*
+ * Turns the rover left
+ * @parm  : none
+ * @return: void
+ */
 void roverLeft(){
   bool turning = true;
   double straight_previous = us_sensor.measureInches();
@@ -123,6 +132,12 @@ void roverLeft(){
   }
 }//end left
 
+
+/*
+ * Turns the rover right
+ * @parm  : none
+ * @return: void
+ */
 void roverRight(){ //ensure head is looking forward before turning
   bool turning = true;
   double straight_previous = us_sensor.measureInches();
@@ -144,22 +159,46 @@ void roverRight(){ //ensure head is looking forward before turning
   }
 }//end right
 
+
+/*
+ * Makes the rover go straight
+ * @parm  : none
+ * @return: void
+ */
 void roverStraight(){
   left_motor.goForward();
   right_motor.goForward();
 }//end straight
 
+
+/*
+ * Makes the rover go in reverse
+ * @parm  : none
+ * @return: void
+ */
 void roverReverse(){
   left_motor.goBackward();
   right_motor.goBackward();
 }//end backward
 
+
+/*
+ * Stops the rover
+ * @parm  : none
+ * @return: void
+ */
 void roverStop(){
   left_motor.stop();
   right_motor.stop();
 }//end stop
 
 //I/O--------------------------------------------------------------------------------
+
+/*
+ * Remote controls the rover 
+ * @parm  : none
+ * @return: void
+ */
 void checkRemote(){
   if(IrReceiver.decode()) 
   {
@@ -229,7 +268,13 @@ void checkRemote(){
 } // checkRemote
 
 
-void scanDrive(){ //scans foward left forward right, to use while MOVING // slightly adjusts path if it detects wall to side, checks for turns if it detects wall in front
+/*
+ * Scans foward left forward right, to use while moving. The rover slightly adjusts path
+ * if it detects wall to side, checks for turns if it detects wall in front
+ * @parm  : none
+ * @return: void
+ */
+void scanDrive(){ 
 
       head.lookStraight();
       straights_current_distance = us_sensor.measureInches();
@@ -263,7 +308,12 @@ void scanDrive(){ //scans foward left forward right, to use while MOVING // slig
 }//end scanDrive
 
 
-void checkTurn(){ //checks if rover needs to turn then takes the necessary action accordingly
+/*
+ * Checks if the rover needs to turn then takes trhe necessary action accordingly
+ * @parm  : none
+ * @return: void
+ */
+void checkTurn(){ 
   if(straights_current_distance < (FORWARD_DISTANCE_THRESHOLD * 3)){//check if approaching wall
     
     while(straights_current_distance > FORWARD_DISTANCE_THRESHOLD){ //rover stops scanning sides and only looks forward until it is within turn range
@@ -323,7 +373,13 @@ void checkTurn(){ //checks if rover needs to turn then takes the necessary actio
     
 }//end checkTurn
 
-void lookSides(){ //scans left and right, for when car is stopped and needs to turn
+
+/*
+ * Scans left and right, for when car is stopped and needs to turn
+ * @parm  : none
+ * @return: void
+ */
+void lookSides(){ 
         // We need to turn the eyes left
       head.turnLeft();
       // measure left's current distance 
@@ -336,7 +392,13 @@ void lookSides(){ //scans left and right, for when car is stopped and needs to t
       head.lookStraight();
 }
 
-void veerRight(){//measures current distance from left wall and adjusts until it is in a direction heading away from it
+
+/*
+ * Measures current distance from left wall and adjusts until it is in a direction heading away from it
+ * @parm  : none
+ * @return: void
+ */
+void veerRight(){
 //make sure head is already facing towards LEFT 
   bool adjusting = true;
   double lefts_previous_distance = us_sensor.measureInches(); 
@@ -344,10 +406,9 @@ void veerRight(){//measures current distance from left wall and adjusts until it
   digitalWrite(RED_LED,HIGH);
   digitalWrite(GREEN_LED,LOW);
 
-    right_motor.setSpeed(left_speed - 50); //starts veering left
-    left_motor.setSpeed(right_speed + 50);
-    right_motor.goForward(); // must call the goForward functions again so they run with the new speed
-    left_motor.goForward();
+  right_motor.setSpeed(left_speed - 100); //starts veering left
+  right_motor.goForward(); // must call the goForward functions again so they run with the new speed
+  left_motor.goForward();
 
   while(adjusting){
   lefts_current_distance = us_sensor.measureInches();
@@ -357,16 +418,22 @@ void veerRight(){//measures current distance from left wall and adjusts until it
 
   }
 
-        left_motor.setSpeed(left_speed);
-        right_motor.setSpeed(right_speed); //resume straight path
-        left_motor.goForward(); 
-        right_motor.goForward();
+  left_motor.setSpeed(left_speed);
+  right_motor.setSpeed(right_speed); //resume straight path
+  left_motor.goForward(); 
+  right_motor.goForward();
 
   digitalWrite(GREEN_LED,HIGH);
   digitalWrite(RED_LED,LOW);
 }//end veerRight
 
-void veerLeft(){//measures current distance from right wall and adjusts until it is in a direction heading away from it
+
+/*
+ * Measures current distance from right wall and adjusts until it is in a direction heading away from it
+ * @parm  : none
+ * @return: void
+ */
+void veerLeft(){
 //make sure head is already facing towards right
   bool adjusting = true;
   double rights_previous_distance = us_sensor.measureInches(); 
@@ -374,10 +441,9 @@ void veerLeft(){//measures current distance from right wall and adjusts until it
   digitalWrite(RED_LED,HIGH);
   digitalWrite(GREEN_LED,LOW);
 
-    left_motor.setSpeed(left_speed - 50); //starts veering left
-    right_motor.setSpeed(right_speed + 50);
-    left_motor.goForward(); // must call the goForward functions again so they run with the new speed
-    right_motor.goForward();
+  left_motor.setSpeed(left_speed - 100); //starts veering left
+  left_motor.goForward(); // must call the goForward functions again so they run with the new speed
+  right_motor.goForward();
 
   while(adjusting){
   rights_current_distance = us_sensor.measureInches();
@@ -387,18 +453,26 @@ void veerLeft(){//measures current distance from right wall and adjusts until it
 
   }
 
-        left_motor.setSpeed(left_speed);
-        right_motor.setSpeed(right_speed); //resume straight path
-        left_motor.goForward(); 
-        right_motor.goForward();
+  left_motor.setSpeed(left_speed);
+  right_motor.setSpeed(right_speed); //resume straight path
+  left_motor.goForward(); 
+  right_motor.goForward();
 
   digitalWrite(GREEN_LED,HIGH);
   digitalWrite(RED_LED,LOW);
 }//end veerLeft
 
+
+/*
+ * Checks if the rover has completed the maze by checking if distances
+ * to the front, left, and right are greater than 4 feet (if this is true
+ * there is no more maze left)
+ * @parm  : none
+ * @return: void
+ */
 void checkEndCourse(){
 
-  //check that all distances are > 6 feet;
+  //check that all distances are > 4 feet;
   bool rightClear = (rights_current_distance >= 4.0 * 12.0);
   bool leftClear = (lefts_current_distance >= 4.0 * 12.0);
   bool frontClear = (lefts_current_distance >= 4.0 * 12.0);
@@ -412,6 +486,12 @@ void checkEndCourse(){
 
 }//end of endCourse
 
+
+/*
+ * Makes the rover dance by spinning in circles and shaking back and forth
+ * @parm  : none
+ * @return: void
+ */
 void danceParty(){
   left_speed = 200;
   right_speed = 200;
@@ -485,16 +565,16 @@ void danceParty(){
     {
       left_motor.goBackward();
       right_motor.goForward();
-        digitalWrite(RED_LED,HIGH);
-        digitalWrite(GREEN_LED,LOW);
+      digitalWrite(RED_LED,HIGH);
+      digitalWrite(GREEN_LED,LOW);
 
       delay(200);
 
       left_motor.goForward();
       right_motor.goBackward(); 
-        digitalWrite(RED_LED,LOW);
-        digitalWrite(GREEN_LED,HIGH);
+      digitalWrite(RED_LED,LOW);
+      digitalWrite(GREEN_LED,HIGH);
       delay(200);
     }
   }
-}
+} // end danceParty

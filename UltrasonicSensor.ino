@@ -1,17 +1,41 @@
+///////////////////////////////////////////////////////////////////////
+// Title      : UltrasonicSensor.ino
+// Authors    : David Betanzos and William Dragstrem
+// Description: Implements all the constructors and methods declared in
+//              UltrasonicSensor.h.
+///////////////////////////////////////////////////////////////////////
 #include "UltrasonicSensor.h"
 
+
+/*
+ * Defualt Csontrucotr that intialzies the trigger pin and echo pin to 0
+ * @parm  : none
+ * @return: void
+ *
+ */
 UltrasonicSensor::UltrasonicSensor(){
   _triggerPin    = 0;
   _echoPin       = 0;
 } 
 
 
+/*
+ * Property constructor that sets the trigger pin and echo pin 
+ * @parm  : trigger pin and echo pin
+ * @return: void
+ */
 UltrasonicSensor::UltrasonicSensor(byte triggerPin, byte echoPin){
   _triggerPin = triggerPin;
   _echoPin    = echoPin;
 } 
 
 
+/*
+ * Measures the duration it takes for the ulatrasonic sensor to recieve a signal
+ * that there is a wall.
+ * @parm  : none
+ * @return: unsigned long
+ */
 unsigned long UltrasonicSensor::measure(){
 
   unsigned long duration = 0;
@@ -44,6 +68,12 @@ unsigned long UltrasonicSensor::measure(){
 } // measure
 
 
+/*
+ * Measures the distance (in inches) the ultrasonic sensor reads
+ * from a wall.
+ * @parm  : none
+ * @return: double
+ */
 double UltrasonicSensor::measureInches(){
 
     double inches = 0;

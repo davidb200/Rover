@@ -1,6 +1,18 @@
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Title       : Remote.h
+// Authors     : David Betanzos and William Dragstrem
+// Description : Provides all the necessary attributes and methods needed for and object
+//               of Remote.
+// Attributes  : Motor attributes needed here to control speed of left and right
+//               motors (left enable, left backwards, left forwards, left speed, right enable, right backwards, 
+//               right forwards, right speed) and recieve pin
+// Constructors: Default constructor initalizing recieve pin to 0 and property constructor
+//               that sets the recieve pin
+// Methods     : remoteBackwards, remoteLeft, remoteRight
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifndef REMOTE_H
 #define REMOTE_H
-//#define IR_USE_AVR_TIMER1  
+
 #include <IRremote.h>
 #include "Motor.h"
 
@@ -26,7 +38,7 @@ class Remote{
     LEFT      = 8,  // Button 4
     RIGHT     = 90, // Button 6
     POWER     = 69, // Power button
-    BACKWARDS = 82,  // Button 8
+    BACKWARDS = 82, // Button 8
     FORWARDS  = 24  // Button 2
 
   }; 

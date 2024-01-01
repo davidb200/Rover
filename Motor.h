@@ -1,3 +1,13 @@
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+// Title       : Motor.h
+// Authors     : David Betanzos and William Dragstrem
+// Description : Provides the necessary attributes anbd methods needed for and object
+//               of Motor.
+// Attributes  : pin 1, pin 2, enable pin, and speed pin
+// Constructors: Defualt constructor intiaizling all attrbiutes to 0 and
+//               property constructor setting up pin 1, pin 2, enable pin, and speed pin for the wheels.
+// Methods     : getSpeed, setSpeed, goForward, goBackward, stop
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifndef MOTOR_H
 #define MOTOR_H
 
